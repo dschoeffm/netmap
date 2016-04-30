@@ -200,6 +200,18 @@ struct netmap_slot {
 	 * The 'len' field refers to the individual fragment.
 	 */
 
+#define MG_OFFLOAD	0x0100 // redefines multiple flags (data)
+#define MG_CONTEXT	0x0200 // redefines multiple flags (xtxt)
+#define MG_OFF_IPv4	0x0008 // (ctxt) packets are IPv4
+#define MG_OFF_L3	0x0008 // (data) offload IPv4/6 checksum
+#define MG_OFF_L3_SH	0x3    // (ctxt) >> for mask 0x1
+#define MG_OFF_TCP	0x0010 // (ctxt) offload UDP checksum -> 1==TCP, 0==UDP
+#define MG_OFF_L4	0x0010 // (data) offload TCP/UDP checksum
+#define MG_OFF_L4_SH	0x8    // (ctxt) >> for mask 0x1
+#define MG_OFF_VLAN	0x0020 // (data) offload VLAN tag
+#define MG_OFF_VLAN_SH	0x10   // (data) >> for mask 0x1
+/* store VLAN tag (1 byte) in NS_PORT_MASK */
+
 #define	NS_PORT_SHIFT	8
 #define	NS_PORT_MASK	(0xff << NS_PORT_SHIFT)
 	/*

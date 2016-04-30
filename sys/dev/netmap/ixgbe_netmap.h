@@ -240,6 +240,43 @@ ixgbe_netmap_txsync(struct netmap_kring *kring, int flags)
 			uint64_t paddr;
 			void *addr = PNMB(na, slot, &paddr);
 
+			/* MoonGen */
+			/* are we dealing with a context descriptor? */
+			if(unlikely((slot->flags & MG_OFFLOAD) & MG_CONTEXT)){
+				slot->flags &= (~MG_CONTEXT); // clear this flag
+				slot->flags |= NS_BUF_CHANGED; // reload map next time
+
+				struct ixgbe_adv_tx_context_desc *curr =
+					(struct ixgbe_adv_tx_context_desc*) &txr->tx_base[nic_i];
+				curr->vlan_macip_lens = 0;
+				curr->seqnum_seed = 0;
+				curr->type_tucmd_mlhl = 0;
+				curr->mss_l4len_idx = 0;
+
+				if(slot->flags &= MG_OFF_IPv4){
+					curr->vlan_macip_lens |= 20;
+				} else {
+					curr->vlan_macip_lens |= 36;
+				}
+				curr->vlan_macip_lens |= 14 << IXGBE_ADVTXD_MACLEN_SHIFT;
+				curr->vlan_macip_lens |= 0 << IXGBE_ADVTXD_VLAN_SHIFT; // XXX no support now
+				curr->vlan_macip_lens |= (slot_flags & NS_PORT_MASK) << 8;
+
+				curr->seqnum_seed = 0; // XXX no idea
+
+				curr->type_tucmd_mlhl |= (slot->flags & MG_OFF_IPv4) << (9+1 - MG_OFF_L3_SH);
+				curr->type_tucmd_mlhl |= (slot->flags & MG_OFF_TCP) << (9+2 - MG_OFF_L3_SH);
+				curr->type_tucmd_mlhl |= IXGBE_ADVTXD_DTYP_CTXT;
+
+				if(slot->flags &= MG_OFF_TCP){
+					curr->mss_l4len_idx |= 20 << IXGBE_ADVTXD_L4LEN_SHIFT;
+				} else {
+					curr->mss_l4len_idx |= 8 << IXGBE_ADVTXD_L4LEN_SHIFT;
+				}
+
+				continue; // do now process this as a data packet
+			}
+
 			/* device-specific */
 			union ixgbe_adv_tx_desc *curr = &txr->tx_base[nic_i];
 			struct ixgbe_tx_buf *txbuf = &txr->tx_buffers[nic_i];
@@ -265,6 +302,13 @@ ixgbe_netmap_txsync(struct netmap_kring *kring, int flags)
 			curr->read.olinfo_status = 0;
 			curr->read.cmd_type_len = htole32(len | flags |
 				IXGBE_ADVTXD_DCMD_IFCS | IXGBE_TXD_CMD_EOP);
+
+			/* MoonGen  */
+			/* offload checksums, VLAN */
+			curr->read.olinfo_status |=
+				((__le32)(slot->flags & (MG_OFF_L3 | MG_OFF_L4))) <<
+					(IXGBE_ADVTXD_POPTS_SHIFT - MG_OFF_L3_SH);
+			curr->read.cmd_type_len |= ((__le32)(slot->flags & MG_OFF_VLAN)) << (24+6 - MG_VLAN_SH);
 
 			/* make sure changes to the buffer are synced */
 			bus_dmamap_sync(txr->txtag, txbuf->map,
