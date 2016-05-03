@@ -189,7 +189,7 @@ ixgbe_netmap_txsync(struct netmap_kring *kring, int flags)
 	struct tx_ring *txr = &adapter->tx_rings[kring->ring_id];
 	int reclaim_tx;
 
-	printk("invoked ixgbe_netmap_txsync()\n");
+	printk(KERN_NOTICE "invoked ixgbe_netmap_txsync()\n");
 
 	bus_dmamap_sync(txr->txdma.dma_tag, txr->txdma.dma_map,
 			BUS_DMASYNC_POSTREAD);
@@ -245,7 +245,7 @@ ixgbe_netmap_txsync(struct netmap_kring *kring, int flags)
 			/* MoonGen */
 			/* are we dealing with a context descriptor? */
 			if(unlikely( (slot->flags & (MG_OFFLOAD | MG_CONTEXT)) != 0)){
-				printk("MG/ixgbe context descriptor in nic_i=%d\n", nic_i);
+				printk(KERN_NOTICE "MG/ixgbe context descriptor in nic_i=%d\n", nic_i);
 
 				slot->flags &= (~MG_CONTEXT); // clear this flag
 				slot->flags |= NS_BUF_CHANGED; // reload map next time
