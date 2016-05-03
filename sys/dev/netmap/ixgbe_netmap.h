@@ -242,7 +242,9 @@ ixgbe_netmap_txsync(struct netmap_kring *kring, int flags)
 
 			/* MoonGen */
 			/* are we dealing with a context descriptor? */
-			if(unlikely((slot->flags & MG_OFFLOAD) & MG_CONTEXT)){
+			if(unlikely( (slot->flags & (MG_OFFLOAD | MG_CONTEXT)) != 0)){
+				printk("MG/ixgbe context descriptor in nic_i=%d", nic_i);
+
 				slot->flags &= (~MG_CONTEXT); // clear this flag
 				slot->flags |= NS_BUF_CHANGED; // reload map next time
 
@@ -274,7 +276,7 @@ ixgbe_netmap_txsync(struct netmap_kring *kring, int flags)
 					curr->mss_l4len_idx |= 8 << IXGBE_ADVTXD_L4LEN_SHIFT;
 				}
 
-				continue; // do now process this as a data packet
+				continue; // do not process this as a data packet
 			}
 
 			/* device-specific */
