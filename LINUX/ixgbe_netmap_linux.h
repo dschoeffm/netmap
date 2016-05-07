@@ -220,7 +220,7 @@ ixgbe_netmap_txsync(struct netmap_kring *kring, int flags)
 				slot->flags |= NS_BUF_CHANGED; // reload map next time
 
 				struct ixgbe_adv_tx_context_desc *curr =
-					(struct ixgbe_adv_tx_context_desc*) &txr->tx_base[nic_i];
+					(struct ixgbe_adv_tx_context_desc*) NM_IXGBE_TX_DESC(txr, nic_i);
 				curr->vlan_macip_lens = 0;
 				curr->seqnum_seed = 0;
 				curr->type_tucmd_mlhl = 0;
@@ -233,7 +233,7 @@ ixgbe_netmap_txsync(struct netmap_kring *kring, int flags)
 				}
 				curr->vlan_macip_lens |= 14 << IXGBE_ADVTXD_MACLEN_SHIFT;
 				curr->vlan_macip_lens |= 0 << IXGBE_ADVTXD_VLAN_SHIFT; // XXX no support now
-				curr->vlan_macip_lens |= (slot_flags & NS_PORT_MASK) << 8;
+				curr->vlan_macip_lens |= (slot->flags & NS_PORT_MASK) << 8;
 
 				curr->seqnum_seed = 0; // XXX no idea
 
@@ -278,7 +278,8 @@ ixgbe_netmap_txsync(struct netmap_kring *kring, int flags)
 			curr->read.olinfo_status |=
 				((__le32)(slot->flags & (MG_OFF_L3 | MG_OFF_L4))) <<
 					(IXGBE_ADVTXD_POPTS_SHIFT - MG_OFF_L3_SH);
-			curr->read.cmd_type_len |= ((__le32)(slot->flags & MG_OFF_VLAN)) << (24+6 - MG_VLAN_SH);
+			curr->read.cmd_type_len |= ((__le32)(slot->flags & MG_OFF_VLAN)) <<
+				(24+6 - MG_OFF_VLAN_SH);
 
 			nm_i = nm_next(nm_i, lim);
 			nic_i = nm_next(nic_i, lim);
