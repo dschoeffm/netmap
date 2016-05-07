@@ -160,6 +160,9 @@ ixgbe_netmap_txsync(struct netmap_kring *kring, int flags)
 	struct ixgbe_ring *txr = NM_IXGBE_TX_RING(adapter, ring_nr);
 	int reclaim_tx;
 
+	// MG test
+	printk(KERN_WARNING "This is a test, ixgbe_netmap_txsync() invoced\n");
+
 	/*
 	 * First part: process new packets to send.
 	 * nm_i is the current index in the netmap ring,
