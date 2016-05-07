@@ -160,9 +160,6 @@ ixgbe_netmap_txsync(struct netmap_kring *kring, int flags)
 	struct ixgbe_ring *txr = NM_IXGBE_TX_RING(adapter, ring_nr);
 	int reclaim_tx;
 
-	// MG test
-	printk(KERN_WARNING "This is a test, ixgbe_netmap_txsync() invoced\n");
-
 	/*
 	 * First part: process new packets to send.
 	 * nm_i is the current index in the netmap ring,
@@ -213,10 +210,11 @@ ixgbe_netmap_txsync(struct netmap_kring *kring, int flags)
 
 			/* MoonGen */
 			/* are we dealing with a context descriptor? */
-			if(unlikely( (slot->flags & (MG_OFFLOAD | MG_CONTEXT)) != 0)){
+			if(unlikely( (slot->flags & (MG_OFFLOAD | MG_CONTEXT)) != 0) ){
 				printk(KERN_WARNING "MG/ixgbe context descriptor in nic_i=%d\n", nic_i);
 
 				slot->flags &= (~MG_CONTEXT); // clear this flag
+				slot->flags &= (~MG_OFFLOAD); // clear this flag too
 				slot->flags |= NS_BUF_CHANGED; // reload map next time
 
 				struct ixgbe_adv_tx_context_desc *curr =
