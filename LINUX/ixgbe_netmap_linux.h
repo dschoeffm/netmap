@@ -245,6 +245,9 @@ ixgbe_netmap_txsync(struct netmap_kring *kring, int flags)
 					curr->mss_l4len_idx |= 8 << IXGBE_ADVTXD_L4LEN_SHIFT;
 				}
 
+				nm_i = nm_next(nm_i, lim);
+				nic_i = nm_next(nic_i, lim);
+
 				continue; // do not process this as a data packet
 			}
 
