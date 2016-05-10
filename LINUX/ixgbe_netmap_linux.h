@@ -225,15 +225,13 @@ ixgbe_netmap_txsync(struct netmap_kring *kring, int flags)
 
 			/* MoonGen */
 			/* are we dealing with a context descriptor? */
-			if(unlikely( ((slot->flags & MG_OFFLOAD) & (slot->flags& MG_CONTEXT)) != 0) ){
+			if(unlikely( (slot->flags & MG_OFFLOAD) && (slot->flags& MG_CONTEXT) )){
 				struct ixgbe_adv_tx_context_desc *curr;
 				char bits[20];
 				bit_string(slot->flags, bits);
 
 				printk(KERN_WARNING "MG/ixgbe context descriptor, nic_i=%d, flags=0x%04x / 0b%s\n",
 					nic_i, slot->flags, bits);
-				printk(KERN_WARNING "MG/ixgbe slot->flags & (MG_OFFLOAD | MG_CONTEXT) = %04x\n",
-					slot->flags & (MG_OFFLOAD | MG_CONTEXT) );
 
 				slot->flags &= (~MG_CONTEXT); // clear this flag
 				slot->flags &= (~MG_OFFLOAD); // clear this flag too
