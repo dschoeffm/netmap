@@ -237,7 +237,7 @@ ixgbe_netmap_txsync(struct netmap_kring *kring, int flags)
 				slot->flags &= (~MG_OFFLOAD); // clear this flag too
 				slot->flags |= NS_BUF_CHANGED; // reload map next time
 
-				curr = (struct ixgbe_adv_tx_context_desc*) NM_IXGBE_TX_DESC(txr, nic_i);
+				curr = IXGBE_TX_CTXTDESC(txr, nic_i);
 				curr->vlan_macip_lens = 0;
 				curr->seqnum_seed = 0;
 				curr->type_tucmd_mlhl = 0;
@@ -256,7 +256,7 @@ ixgbe_netmap_txsync(struct netmap_kring *kring, int flags)
 
 				curr->type_tucmd_mlhl |= (slot->flags & MG_OFF_IPv4) << (9+1 - MG_OFF_L3_SH);
 				curr->type_tucmd_mlhl |= (slot->flags & MG_OFF_TCP) << (9+2 - MG_OFF_L3_SH);
-				curr->type_tucmd_mlhl |= IXGBE_ADVTXD_DTYP_CTXT;
+				curr->type_tucmd_mlhl |= IXGBE_ADVTXD_DTYP_CTXT | IXGBE_TXD_CMD_DEXT;
 
 				if(slot->flags &= MG_OFF_TCP){
 					curr->mss_l4len_idx |= 20 << IXGBE_ADVTXD_L4LEN_SHIFT;
