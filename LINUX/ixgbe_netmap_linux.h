@@ -36,7 +36,7 @@
  */
 
 
-#include <bsd_glue.h>
+#include "bsd_glue.h"
 #include <net/netmap.h>
 #include <netmap/netmap_kern.h>
 
@@ -72,6 +72,21 @@ char ixgbe_driver_name[] = "ixgbe" NETMAP_LINUX_DRIVER_SUFFIX;
 #define NM_IXGBE_TX_RING(a, r)		(&(a)->tx_ring[(r)])
 #define NM_IXGBE_RX_RING(a, r)		(&(a)->rx_ring[(r)])
 #endif
+
+/*
+ * Convert in to 1/0 representation in out. out should be char[20]
+ */
+static void bit_string(u16 in, char* out){
+	int i, j;
+	for(i=0; i<4; i++){
+		for(j=0; j<4; j++){
+			int res = in & (1 << (i*4 + j));
+			out[18 - (i*5 + j)] = res == 0 ? '0' : '1';
+		}
+		out[18 - (i*5 +4)] = ' ';
+	}
+	out[19] = '\0';
+}
 
 /*
  * Register/unregister. We are already under netmap lock.
@@ -211,14 +226,16 @@ ixgbe_netmap_txsync(struct netmap_kring *kring, int flags)
 			/* MoonGen */
 			/* are we dealing with a context descriptor? */
 			if(unlikely( (slot->flags & (MG_OFFLOAD | MG_CONTEXT)) != 0) ){
-				printk(KERN_WARNING "MG/ixgbe context descriptor in nic_i=%d, flags=%04x\n", nic_i, slot->flags);
+				struct ixgbe_adv_tx_context_desc *curr;
+				char bits[20];
+				bit_string(slot->flags, bits);
+				printk(KERN_WARNING "MG/ixgbe context descriptor, nic_i=%d, flags=%s\n", nic_i, bits);
 
 				slot->flags &= (~MG_CONTEXT); // clear this flag
 				slot->flags &= (~MG_OFFLOAD); // clear this flag too
 				slot->flags |= NS_BUF_CHANGED; // reload map next time
 
-				struct ixgbe_adv_tx_context_desc *curr =
-					(struct ixgbe_adv_tx_context_desc*) NM_IXGBE_TX_DESC(txr, nic_i);
+				curr = (struct ixgbe_adv_tx_context_desc*) NM_IXGBE_TX_DESC(txr, nic_i);
 				curr->vlan_macip_lens = 0;
 				curr->seqnum_seed = 0;
 				curr->type_tucmd_mlhl = 0;
