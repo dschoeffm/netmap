@@ -245,42 +245,39 @@ ixgbe_netmap_txsync(struct netmap_kring *kring, int flags)
 					curr->mss_l4len_idx |= 8 << IXGBE_ADVTXD_L4LEN_SHIFT;
 				}
 
-				nm_i = nm_next(nm_i, lim);
-				nic_i = nm_next(nic_i, lim);
+			} else {
 
-				continue; // do not process this as a data packet
+				/* device-specific */
+				union ixgbe_adv_tx_desc *curr = NM_IXGBE_TX_DESC(txr, nic_i);
+				int flags = (slot->flags & NS_REPORT ||
+					nic_i == 0 || nic_i == report_frequency) ?
+					IXGBE_TXD_CMD_RS : 0;
+
+				NM_CHECK_ADDR_LEN(na, addr, len);
+
+				if (slot->flags & NS_BUF_CHANGED) {
+					/* buffer has changed, reload map */
+					// netmap_reload_map(pdev, DMA_TO_DEVICE, old_addr, addr);
+				}
+				if (!(slot->flags & NS_MOREFRAG))
+					flags |= IXGBE_TXD_CMD_EOP;
+				slot->flags &= ~(NS_REPORT | NS_BUF_CHANGED | NS_MOREFRAG);
+
+				/* Fill the slot in the NIC ring. */
+				curr->read.buffer_addr = htole64(paddr);
+				curr->read.olinfo_status = htole32(len << IXGBE_ADVTXD_PAYLEN_SHIFT);
+				curr->read.cmd_type_len = htole32(len | flags |
+					IXGBE_ADVTXD_DTYP_DATA | IXGBE_ADVTXD_DCMD_DEXT |
+					IXGBE_ADVTXD_DCMD_IFCS);
+
+				/* MoonGen  */
+				/* offload checksums, VLAN */
+				curr->read.olinfo_status |=
+					((__le32)(slot->flags & (MG_OFF_L3 | MG_OFF_L4))) <<
+						(IXGBE_ADVTXD_POPTS_SHIFT - MG_OFF_L3_SH);
+				curr->read.cmd_type_len |= ((__le32)(slot->flags & MG_OFF_VLAN)) <<
+					(24+6 - MG_OFF_VLAN_SH);
 			}
-
-			/* device-specific */
-			union ixgbe_adv_tx_desc *curr = NM_IXGBE_TX_DESC(txr, nic_i);
-			int flags = (slot->flags & NS_REPORT ||
-				nic_i == 0 || nic_i == report_frequency) ?
-				IXGBE_TXD_CMD_RS : 0;
-
-			NM_CHECK_ADDR_LEN(na, addr, len);
-
-			if (slot->flags & NS_BUF_CHANGED) {
-				/* buffer has changed, reload map */
-				// netmap_reload_map(pdev, DMA_TO_DEVICE, old_addr, addr);
-			}
-			if (!(slot->flags & NS_MOREFRAG))
-				flags |= IXGBE_TXD_CMD_EOP;
-			slot->flags &= ~(NS_REPORT | NS_BUF_CHANGED | NS_MOREFRAG);
-
-			/* Fill the slot in the NIC ring. */
-			curr->read.buffer_addr = htole64(paddr);
-			curr->read.olinfo_status = htole32(len << IXGBE_ADVTXD_PAYLEN_SHIFT);
-			curr->read.cmd_type_len = htole32(len | flags |
-				IXGBE_ADVTXD_DTYP_DATA | IXGBE_ADVTXD_DCMD_DEXT |
-				IXGBE_ADVTXD_DCMD_IFCS);
-
-			/* MoonGen  */
-			/* offload checksums, VLAN */
-			curr->read.olinfo_status |=
-				((__le32)(slot->flags & (MG_OFF_L3 | MG_OFF_L4))) <<
-					(IXGBE_ADVTXD_POPTS_SHIFT - MG_OFF_L3_SH);
-			curr->read.cmd_type_len |= ((__le32)(slot->flags & MG_OFF_VLAN)) <<
-				(24+6 - MG_OFF_VLAN_SH);
 
 			nm_i = nm_next(nm_i, lim);
 			nic_i = nm_next(nic_i, lim);
