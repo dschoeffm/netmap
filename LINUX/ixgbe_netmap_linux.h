@@ -225,7 +225,7 @@ ixgbe_netmap_txsync(struct netmap_kring *kring, int flags)
 
 			/* MoonGen */
 			/* are we dealing with a context descriptor? */
-			if(unlikely( (slot->flags & (MG_OFFLOAD | MG_CONTEXT)) != 0) ){
+			if(unlikely( ((slot->flags & MG_OFFLOAD) & (slot->flags& MG_CONTEXT)) != 0) ){
 				struct ixgbe_adv_tx_context_desc *curr;
 				char bits[20];
 				bit_string(slot->flags, bits);
